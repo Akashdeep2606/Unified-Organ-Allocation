@@ -1,0 +1,26 @@
+# Environment variables & secrets
+.env
+
+# Python bytecode & caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Testing & coverage caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Project internal prompts
+antigravity_build_prompt.md
+

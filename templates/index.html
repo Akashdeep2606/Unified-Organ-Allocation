@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Organ Allocation System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .card-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 1.25rem;
+        }
+        .table thead th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            border-bottom: 1px solid #cbd5e1;
+        }
+        .table td {
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #334155;
+            margin-bottom: 0.35rem;
+        }
+        .form-control, .form-select {
+            border-color: #cbd5e1;
+            font-size: 0.9rem;
+            border-radius: 6px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        .top-match-row {
+            background-color: #f0fdf4 !important;
+        }
+        .badge-pill-soft {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.35em 0.65em;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Minimal Navigation -->
+    <nav class="navbar navbar-expand-lg bg-white border-bottom py-2 mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-dark d-flex align-items-center gap-2" href="/">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                </svg>
+                <span>Organ Allocation System</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <span class="small text-muted" id="signed-in-user"></span>
+                <button class="btn btn-sm btn-outline-secondary" id="logout-button" type="button">Log out</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+        <!-- System Description / Status Notice -->
+        <div class="d-flex justify-content-between align-items-end mb-3">
+            <div>
+                <h1 class="h4 fw-bold mb-1">Deceased Donor Organ Intake &amp; Allocation</h1>
+                <p class="text-muted small mb-0">
+                    Rule-based patient ranking: Filters compatible waitlist candidates, computes composite scores, and identifies a primary match with a prioritized standby queue.
+                </p>
+            </div>
+            <!-- Quick preset buttons for instant evaluation -->
+            <div class="d-none d-md-flex gap-2">
+                <span class="text-muted small align-self-center">Sample Donors:</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="preset-1-btn">O+ Kidney (MH)</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="preset-2-btn">B+ Liver (KL)</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="preset-3-btn">A+ Kidney (TN)</button>
+            </div>
+        </div>
+
+        <!-- Donor Intake Form Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="h6 fw-bold mb-0">1. Donor Information Intake</h2>
+                <span class="badge bg-light text-muted border">Single Organ Allocation</span>
+            </div>
+            <div class="card-body">
+                <div id="status-message" class="d-none"></div>
+
+                <form id="donor-form">
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label for="donor_id" class="form-label">Donor ID</label>
+                            <input type="text" class="form-control mono" id="donor_id" name="donor_id" placeholder="e.g. D100" required>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="organ_type" class="form-label">Organ Type</label>
+                            <select class="form-select" id="organ_type" name="organ_type" required>
+                                <option value="" selected disabled>Choose organ...</option>
+                                <option value="Kidney">Kidney</option>
+                                <option value="Liver">Liver</option>
+                                <option value="Heart">Heart</option>
+                                <option value="Lung">Lung</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="blood_group" class="form-label">Blood Group</label>
+                            <select class="form-select" id="blood_group" name="blood_group" required>
+                                <option value="" selected disabled>Choose blood...</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="state" class="form-label">Donor State</label>
+                            <select class="form-select" id="state" name="state" required>
+                                <option value="" selected disabled>Choose state...</option>
+                                <option value="Punjab">Punjab</option>
+                                <option value="Maharashtra">Maharashtra</option>
+                                <option value="Tamil Nadu">Tamil Nadu</option>
+                                <option value="Kerala">Kerala</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="hospital_id" class="form-label">Hospital ID</label>
+                            <input type="text" class="form-control mono" id="hospital_id" name="hospital_id" value="H001" required>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="viability_hours" class="form-label">Viability (Hrs)</label>
+                            <input type="number" class="form-control" id="viability_hours" name="viability_hours" value="24" min="1" required>
+                        </div>
+
+                        <div class="col-md-9">
+                            <label for="hla_type" class="form-label">HLA Alleles (comma-separated)</label>
+                            <input type="text" class="form-control mono" id="hla_type" name="hla_type" value="A2,A24,B7,B44,DR4,DR7" required>
+                        </div>
+
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" id="submit-btn" class="btn btn-primary w-100 fw-medium">
+                                Log Donor &amp; Rank Patients
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Project overview and auditability -->
+        <section class="card mt-4 mb-4" aria-labelledby="overview-title">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="h6 fw-bold mb-0" id="overview-title">Project Overview &amp; Audit Trail</h2>
+                <button class="btn btn-sm btn-outline-secondary" id="refresh-overview" type="button">Refresh</button>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Waitlist patients</div><div class="fs-3 fw-bold" id="metric-patients">—</div></div></div>
+                    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Donors recorded</div><div class="fs-3 fw-bold" id="metric-donors">—</div></div></div>
+                    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Score records</div><div class="fs-3 fw-bold" id="metric-scores">—</div></div></div>
+                    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="text-muted small">Audit events</div><div class="fs-3 fw-bold" id="metric-audit">—</div></div></div>
+                </div>
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <div><h3 class="h6 fw-semibold mb-1">Scoring Policy Configuration</h3><p class="small text-muted mb-0">Adjust the four score weights. They must total 100%. Changes apply to future rankings.</p></div>
+                        <span class="badge bg-warning-subtle text-dark border">Simulation setting</span>
+                    </div>
+                    <form id="weights-form" class="row g-2 align-items-end">
+                        <div class="col-6 col-md"><label class="form-label small" for="weight-urgency">Urgency (%)</label><input class="form-control" type="number" min="0" max="100" step="1" id="weight-urgency" required></div>
+                        <div class="col-6 col-md"><label class="form-label small" for="weight-match">HLA match (%)</label><input class="form-control" type="number" min="0" max="100" step="1" id="weight-match" required></div>
+                        <div class="col-6 col-md"><label class="form-label small" for="weight-wait">Waiting time (%)</label><input class="form-control" type="number" min="0" max="100" step="1" id="weight-wait" required></div>
+                        <div class="col-6 col-md"><label class="form-label small" for="weight-distance">Distance (%)</label><input class="form-control" type="number" min="0" max="100" step="1" id="weight-distance" required></div>
+                        <div class="col-12 col-md-auto"><button class="btn btn-primary" type="submit">Save scoring weights</button></div>
+                    </form>
+                    <div id="weights-status" class="small mt-2" role="status"></div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <button class="btn btn-outline-primary btn-sm" id="compare-rankings" type="button">Compare national vs same-state simulation</button>
+                    <span class="small text-muted">Uses the most recently entered donor ID. Same-state comparison is an illustrative baseline, not an actual state policy.</span>
+                </div>
+                <div id="comparison-result" class="small mb-3" aria-live="polite"></div>
+                <h3 class="h6 fw-semibold">Recent audit events</h3>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped align-middle mb-0">
+                        <thead><tr><th>Time</th><th>Event</th><th>Entity ID</th><th>Details</th></tr></thead>
+                        <tbody id="audit-table-body"><tr><td colspan="4" class="text-muted">Loading audit events…</td></tr></tbody>
+                    </table>
+                </div>
+                <div class="small text-muted mt-2">Dashboard metrics and logs are based on synthetic academic prototype records.</div>
+            </div>
+        </section>
+
+        <!-- Primary Allocation Summary Banner (Populated dynamically on ranking) -->
+        <div id="allocation-callout" class="d-none"></div>
+
+        <!-- Ranking Results Table Card -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="h6 fw-bold mb-0">2. Prioritized Patient Allocation List</h2>
+                    <small class="text-muted">Rank 1 is the primary match recommendation; lower ranks form the standby queue. This prototype does not confirm an actual allocation.</small>
+                </div>
+                <span id="results-count" class="badge bg-secondary">0 candidates</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="results-table">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 70px;" class="text-center">Rank</th>
+                                <th scope="col" style="width: 110px;">Patient ID</th>
+                                <th scope="col">Candidate Name</th>
+                                <th scope="col" class="text-center">Total Score</th>
+                                <th scope="col" class="text-center">Urgency (40%)</th>
+                                <th scope="col" class="text-center">Match (30%)</th>
+                                <th scope="col" class="text-center">Wait (20%)</th>
+                                <th scope="col" class="text-center">Distance Score (10%)</th>
+                                <th scope="col" class="text-center">Distance (km)</th>
+                                <th scope="col" class="text-center">Waitlist</th>
+                                <th scope="col" style="width: 200px;">Allocation Decision</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-table-body">
+                            <tr>
+                                <td colspan="11" class="text-center text-muted py-5">
+                                    <div class="mb-2 text-secondary">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                    </div>
+                                    <div>No donor organ evaluated yet.</div>
+                                    <small class="text-muted">Enter donor attributes above or click one of the Sample Donors to generate the allocation ranking.</small>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Allocation Protocol Legend / Note -->
+        <div class="card mt-4 mb-3">
+            <div class="card-header"><h2 class="h6 fw-bold mb-0">3. Patient Waitlist Management</h2></div>
+            <div class="card-body">
+                <form id="patient-form">
+                    <div class="row g-2">
+                        <div class="col-md-3"><label class="form-label" for="p_patient_id">Patient ID</label><input class="form-control" id="p_patient_id" required placeholder="P200"></div>
+                        <div class="col-md-3"><label class="form-label" for="p_name">Name (synthetic)</label><input class="form-control" id="p_name" required></div>
+                        <div class="col-md-2"><label class="form-label" for="p_age">Age</label><input class="form-control" id="p_age" type="number" min="0" max="120" required></div>
+                        <div class="col-md-2"><label class="form-label" for="p_gender">Gender</label><select class="form-select" id="p_gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
+                        <div class="col-md-2"><label class="form-label" for="p_state">State</label><select class="form-select" id="p_state"><option>Punjab</option><option>Maharashtra</option><option>Tamil Nadu</option><option>Kerala</option></select></div>
+                        <div class="col-md-2"><label class="form-label" for="p_hospital">Hospital ID</label><input class="form-control" id="p_hospital" required placeholder="H001"></div>
+                        <div class="col-md-2"><label class="form-label" for="p_hospital_type">Hospital type</label><select class="form-select" id="p_hospital_type"><option>Government</option><option>Private</option></select></div>
+                        <div class="col-md-2"><label class="form-label" for="p_blood">Blood group</label><select class="form-select" id="p_blood"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div>
+                        <div class="col-md-2"><label class="form-label" for="p_organ">Organ needed</label><select class="form-select" id="p_organ"><option>Kidney</option><option>Liver</option><option>Heart</option><option>Lung</option></select></div>
+                        <div class="col-md-4"><label class="form-label" for="p_hla">HLA alleles</label><input class="form-control" id="p_hla" required placeholder="A2,A24,B7,B44,DR4,DR7"></div>
+                        <div class="col-md-2"><label class="form-label" for="p_dialysis">Dialysis</label><select class="form-select" id="p_dialysis"><option>No</option><option>Yes</option></select></div>
+                        <div class="col-md-2"><label class="form-label" for="p_icu">ICU level</label><select class="form-select" id="p_icu"><option>Not Admitted</option><option>Standard</option><option>ICU</option><option>Critical</option></select></div>
+                        <div class="col-md-2"><label class="form-label" for="p_stage">Failure stage (1–4)</label><input class="form-control" id="p_stage" type="number" min="1" max="4" value="2" required></div>
+                        <div class="col-md-2"><label class="form-label" for="p_wait">Waitlist days</label><input class="form-control" id="p_wait" type="number" min="0" value="0" required></div>
+                        <div class="col-md-2"><label class="form-label" for="p_relative">Family donor relative</label><select class="form-select" id="p_relative"><option>No</option><option>Yes</option></select></div>
+                        <div class="col-md-3 d-flex align-items-end"><button class="btn btn-outline-primary w-100" type="submit" id="patient-submit">Register Patient</button></div>
+                    </div>
+                </form>
+                <div id="patient-status" class="small mt-2" role="status"></div>
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+                    <h3 class="h6 fw-semibold mb-0">Registered synthetic patients</h3>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="refresh-patients">Refresh list</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead><tr><th>Patient ID</th><th>Name</th><th>Organ</th><th>Blood</th><th>State</th><th>Waitlist days</th><th>Action</th></tr></thead>
+                        <tbody id="patients-list-body"><tr><td colspan="7" class="text-muted">Loading patients…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3 p-3 bg-white rounded border text-muted small">
+            <div class="fw-semibold text-dark mb-1">How single-donor allocation works:</div>
+            Rank 1 is the <strong>primary match recommendation</strong>; it is not a confirmed allocation. 
+            Candidates ranked 2 and below serve as the prioritized standby queue in case the primary candidate is medically unavailable, uncontactable, or declines. 
+            If candidates tie on all clinical and demographic tiebreakers, the result is flagged for coordinator review. Final allocation requires authorised medical/coordinator confirmation. This is a synthetic-data academic prototype, not a clinical decision system.
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Application Logic -->
+    <script src="/static/script.js"></script>
+</body>
+</html>
