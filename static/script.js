@@ -12,12 +12,14 @@ window.fetch = async (...args) => {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
+    let currentUserRole = "";
     try {
         const meResponse = await fetch("/api/auth/me");
         const me = await meResponse.json();
         if (meResponse.ok) {
             document.getElementById("signed-in-user").textContent = `${me.username} · ${me.role}${me.hospital_id ? ` · ${me.hospital_id}` : ""}`;
             const role = me.role;
+            currentUserRole = role;
             const donorCard = document.getElementById("donor-form")?.closest(".card");
             const patientCard = document.getElementById("patient-form")?.closest(".card");
             const overview = document.getElementById("overview-title")?.closest("section");
@@ -304,11 +306,57 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <td class="text-center mono small">${distanceKm}</td>
                 <td class="text-center small">${waitDays}d</td>
                 <td>${statusBadge}</td>
+                <td class="text-center">
+                    ${(currentUserRole === "admin" || currentUserRole === "coordinator") && !patient.urgent_override
+                        ? `<button type="button" class="btn btn-sm btn-outline-warning" data-urgent-override="${patientId}">Override</button>`
+                        : (patient.urgent_override ? '<span class="badge bg-warning text-dark">Overridden</span>' : '<span class="text-muted small">—</span>')}
+                </td>
             `;
 
             tableBody.appendChild(row);
         });
     }
+
+    tableBody?.addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-urgent-override]");
+        if (!button) return;
+        if (!["admin", "coordinator"].includes(currentUserRole)) {
+            window.alert("Only Admin or Coordinator can record an urgent override.");
+            return;
+        }
+        if (!latestDonorId) {
+            window.alert("Generate a donor ranking before recording an override.");
+            return;
+        }
+        const patientId = button.getAttribute("data-urgent-override");
+        const reason = window.prompt("Enter the reason for this simulated urgent override (at least 12 characters):");
+        if (reason === null) return;
+        if (reason.trim().length < 12) {
+            window.alert("Please enter a reason of at least 12 characters.");
+            return;
+        }
+        button.disabled = true;
+        try {
+            const response = await fetch("/api/allocation/urgent-override", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({donor_id: latestDonorId, patient_id: patientId, reason: reason.trim()})
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || "Could not record override.");
+            const rankingResponse = await fetch(`/api/patients/ranked/${encodeURIComponent(latestDonorId)}`);
+            const ranking = await rankingResponse.json();
+            if (!rankingResponse.ok) throw new Error(ranking.error || "Override saved, but ranking refresh failed.");
+            renderRankingTable(ranking, {
+                organ_type: document.getElementById("organ_type").value,
+                blood_group: document.getElementById("blood_group").value
+            });
+            showAlert("Urgent override recorded and ranking refreshed. This is a simulated prototype decision, not a clinical allocation.", "warning");
+        } catch (error) {
+            window.alert(error.message);
+            button.disabled = false;
+        }
+    });
 
     const patientForm = document.getElementById("patient-form");
     patientForm?.addEventListener("submit", async (event) => {

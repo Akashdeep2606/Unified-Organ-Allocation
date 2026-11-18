@@ -35,7 +35,7 @@ The system's normal result is a **ranking**. A first-ranked patient is a *Primar
 - Patient registration, listing, update and deletion (role dependent).
 - Admin, coordinator and hospital login using password hashes and Flask sessions.
 - Hospital accounts linked to a single `hospital_id`; hospital patient queries are scoped to that hospital.
-- Admin/coordinator urgent-override recording for compatible synthetic cases.
+- Admin/coordinator urgent-override action directly in the ranking results table for compatible synthetic cases; requires a reason and refreshes the ranking.
 - Informational same-hospital and family-donor-relative indicators. These flags do not independently confer medical priority.
 - Configurable scoring weights, with a 100% total validation.
 - Dashboard counts, audit events and a same-state-only comparison simulation.
@@ -237,7 +237,7 @@ Do not copy this example coordinate to every hospital. Missing coordinates cause
 
 ## Demo login accounts and roles
 
-The application has three roles: **Admin**, **Coordinator** and **Hospital**. The following are the demonstration accounts configured for the local demo database.
+The login page begins with a **Sign in as** dropdown containing **Admin**, **Coordinator** and **Hospital**. The selected role is sent with the login request and must match the role stored for that username in the database. The application has three roles: **Admin**, **Coordinator** and **Hospital**. The following are the demonstration accounts configured for the local demo database.
 
 > **Credential visibility:** Anyone who can read this README can see the coordinator and hospital demo credentials. Keep the GitHub repository private if you intend to share these credentials only with selected people. Change or replace these demo passwords before making the repository public or using the accounts in a deployed environment.
 
@@ -265,8 +265,10 @@ The hospital account is linked to hospital `H001`. It can register patients and 
 The linked hospital ID must exist in the `hospitals` table. For another database, verify the hospital ID before linking or using the account.
 
 ### Administrator account
+username - Admin
+password- Admin123abc
 
-An administrator account is available for system administration. Its username and password are intentionally **not documented in this README**. The project owner provisions and shares administrator credentials separately with authorised people.
+
 
 ### Role permissions implemented in the backend
 
@@ -284,7 +286,7 @@ An administrator account is available for system administration. Its username an
 | Create/list user accounts | Yes | No | No |
 | Confirm simulated allocation | Yes | Yes | No |
 
-The browser interface hides controls according to role, and the API also enforces role checks for protected operations. Hospital access is scoped to its linked hospital for patient listing and changes. Admin/coordinator accounts are not tied to a hospital.
+The browser interface hides controls according to role, and the API also enforces role checks for protected operations. On the Ranking Results table, Admin and Coordinator users see an **Override** action for each compatible candidate. The action asks for a reason of at least 12 characters, calls `POST /api/allocation/urgent-override`, then reloads the donor ranking. The selected candidate is displayed as overridden when the saved override is applied. Hospital users do not see this action. Hospital access is scoped to its linked hospital for patient listing and changes. Admin/coordinator accounts are not tied to a hospital.
 
 ## Run the application
 
@@ -344,7 +346,7 @@ All API routes are under `/api`. Except for login, they require an authenticated
 
 | Method | Endpoint | Purpose / access |
 |---|---|---|
-| `POST` | `/api/auth/login` | Authenticate with username/password; public |
+| `POST` | `/api/auth/login` | Authenticate with selected role, username and password; public |
 | `POST` | `/api/auth/logout` | Clear current session |
 | `GET` | `/api/auth/me` | Return current username, role and linked hospital ID |
 | `GET`, `POST` | `/api/users` | List/create users; admin only. Creation supports coordinator/hospital roles |
@@ -365,7 +367,7 @@ All API routes are under `/api`. Except for login, they require an authenticated
 POST /api/auth/login
 Content-Type: application/json
 
-{"username":"admin-user","password":"your-password"}
+{"role":"admin","username":"admin-user","password":"your-password"}
 ```
 
 ### Example: create a patient
@@ -405,7 +407,7 @@ Content-Type: application/json
 }
 ```
 
-The patient must pass the existing exact organ and blood-group compatibility filter. Regenerate the ranking for the donor to see the simulated ordering.
+The patient must pass the existing exact organ and blood-group compatibility filter. In the UI, Admin or Coordinator clicks **Override** in that patient's Ranking Results row, enters a reason of at least 12 characters, and confirms. The browser calls this endpoint and refreshes the donor ranking; the overridden candidate is moved to the top when it remains eligible. The operation is logged for audit. This is a simulated ranking override, not a clinical allocation decision.
 
 ### Example: simulated confirmation
 
@@ -445,7 +447,7 @@ Tests that access MySQL need a reachable test database with the required schema 
 - Use synthetic records only. Do not enter names or details of real patients or donors.
 - Passwords are stored as Werkzeug password hashes; passwords are not stored in plain text.
 - Keep `.env` and all credentials out of Git and screenshots.
-- The coordinator and hospital passwords listed in this README are local demonstration credentials only; replace them before public release or deployment. Administrator credentials are intentionally omitted.
+- The coordinator and hospital passwords listed in this README are local demonstration credentials only; replace them before public release or deployment. Administrator credentials are intentionally omitted. The login dropdown does not create accounts or reset passwords; it only verifies that the selected role matches the account's stored role.
 - Use HTTPS and a private random `SECRET_KEY` in deployment.
 - The matching rules are simplified and not a complete medical compatibility assessment.
 - The scoring weights, special indicators, urgent override and simulated confirmation are not clinical policy.

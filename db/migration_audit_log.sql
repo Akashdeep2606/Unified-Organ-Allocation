@@ -1,5 +1,5 @@
 -- Run once against the existing organ_allocation database.
-USE `organ_allocation`;
+USE `railway`;
 
 CREATE TABLE IF NOT EXISTS `audit_logs` (
     `audit_id` BIGINT AUTO_INCREMENT PRIMARY KEY,

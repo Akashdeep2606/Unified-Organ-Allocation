@@ -10,6 +10,13 @@
   <main class="card login-card w-100 p-4 p-md-5">
     <div class="text-center mb-4"><div class="text-primary fs-2">♥</div><h1 class="h4 fw-bold">Organ Allocation System</h1><p class="text-secondary small mb-0">Sign in to access the administration dashboard</p></div>
     <form id="login-form">
+      <label class="form-label" for="role">Sign in as</label>
+      <select class="form-select mb-3" id="role" required>
+        <option value="" selected disabled>Select your role</option>
+        <option value="admin">Admin</option>
+        <option value="coordinator">Coordinator</option>
+        <option value="hospital">Hospital</option>
+      </select>
       <label class="form-label" for="username">Username</label><input class="form-control mb-3" id="username" autocomplete="username" required autofocus>
       <label class="form-label" for="password">Password</label><input class="form-control mb-3" id="password" type="password" autocomplete="current-password" required>
       <div id="login-error" class="small text-danger mb-3" role="alert"></div>
@@ -24,7 +31,7 @@ document.getElementById('login-form').addEventListener('submit', async (event) =
   const errorBox = document.getElementById('login-error');
   button.disabled = true; button.textContent = 'Signing in…'; errorBox.textContent = '';
   try {
-    const response = await fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:document.getElementById('username').value, password:document.getElementById('password').value})});
+    const response = await fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({role:document.getElementById('role').value, username:document.getElementById('username').value, password:document.getElementById('password').value})});
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Sign in failed.');
     window.location.href = '/';

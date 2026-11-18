@@ -44,8 +44,9 @@ def login() -> tuple[Response, int]:
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", ""))
-    if not username or not password:
-        return jsonify({"error": "Enter both username and password."}), 400
+    requested_role = str(data.get("role", "")).strip().lower()
+    if not username or not password or requested_role not in {"admin", "coordinator", "hospital"}:
+        return jsonify({"error": "Select a role and enter both username and password."}), 400
     try:
         with get_cursor(dictionary=True, commit=False) as cursor:
             cursor.execute("SELECT user_id, username, password_hash, role, hospital_id, is_active FROM users WHERE username = %s", (username,))
@@ -53,8 +54,10 @@ def login() -> tuple[Response, int]:
     except MySQLError:
         logger.exception("Login lookup failed")
         return jsonify({"error": "Login database is not ready. Run db/migration_users.sql and create an admin user."}), 503
-    if not user or not user.get("is_active") or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid username or password."}), 401
+    if (not user or not user.get("is_active")
+            or user.get("role") != requested_role
+            or not check_password_hash(user["password_hash"], password)):
+        return jsonify({"error": "Invalid credentials or selected role does not match this account."}), 401
     session.clear()
     session["user_id"] = int(user["user_id"])
     session["username"] = user["username"]

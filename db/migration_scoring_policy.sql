@@ -1,5 +1,5 @@
 -- Run once against the existing organ_allocation database.
-USE `organ_allocation`;
+USE `railway`;
 
 CREATE TABLE IF NOT EXISTS `scoring_policy` (
     `policy_id` TINYINT NOT NULL PRIMARY KEY,

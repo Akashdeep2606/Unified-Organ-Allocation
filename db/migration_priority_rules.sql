@@ -1,5 +1,5 @@
 -- Run once in MySQL Workbench against organ_allocation.
-USE organ_allocation;
+USE 'railway';
 
 CREATE TABLE IF NOT EXISTS urgent_overrides (
     override_id BIGINT AUTO_INCREMENT PRIMARY KEY,
